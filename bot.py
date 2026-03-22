@@ -4,14 +4,13 @@ from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, Con
 from core.auth import is_allowed
 from core.config import BOT_TOKEN
 from core.keyboard import MAIN_KEYBOARD
-from core.state import awaiting_stop_confirm
 
 from handlers.status import handle_status
 from handlers.test import handle_test
 from handlers.lock import handle_lock
 from handlers.services import handle_services
 from handlers.submodes import handle_submodes
-from handlers.stop import handle_stop_request, handle_stop_confirm, handle_stop_cancel, STOP_CODE
+from handlers.stop import handle_stop_request, handle_stop_confirm, handle_stop_cancel, STOP_CODE, awaiting_stop_confirm
 from handlers.traffic import handle_traffic
 from handlers.start_unlock import (
     handle_start_request,
@@ -29,6 +28,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
     awaiting_stop_confirm.discard(user.id)
     awaiting_start_confirm.discard(user.id)
+
     await update.message.reply_text(
         "⚡ APEX SERVER CONTROL\nChoose an action:",
         reply_markup=MAIN_KEYBOARD,
@@ -44,15 +44,34 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     text = (message.text or "").strip()
 
+    # 🧠 SMART STOP MODE
     if user.id in awaiting_stop_confirm:
         if text == STOP_CODE:
             await handle_stop_confirm(update, context)
             return
+
         if text == "❌ CANCEL":
             await handle_stop_cancel(update, context)
             return
+
+        # разрешённые команды
+        if text == "📊 STATUS":
+            await handle_status(update, context)
+            return
+
+        if text == "🤖 SERVICES":
+            await handle_services(update, context)
+            return
+
+        if text == "🧪 TEST":
+            await handle_test(update, context)
+            return
+
         await update.message.reply_text(
-            f"⚠️ Wrong code.\n\nType {STOP_CODE} to confirm STOP ALL\nor send ❌ CANCEL."
+            f"⚠️ STOP ALL is waiting for confirmation.\n\n"
+            f"Type {STOP_CODE} to confirm STOP ALL\n"
+            f"or send ❌ CANCEL.\n\n"
+            f"Allowed: 📊 STATUS / 🤖 SERVICES / 🧪 TEST"
         )
         return
 
@@ -60,9 +79,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         if text == START_CODE:
             await handle_start_confirm(update, context)
             return
+
         if text == "❌ CANCEL":
             await handle_start_cancel(update, context)
             return
+
         await update.message.reply_text(
             f"⚠️ Wrong code.\n\nType {START_CODE} to confirm START\nor send ❌ CANCEL."
         )

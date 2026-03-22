@@ -4,3 +4,4 @@ __pycache__/
 core/config.py
 logs/
 data/*.lock
+.env
