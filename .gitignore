@@ -5,3 +5,4 @@ core/config.py
 logs/
 data/*.lock
 .env
+.security_bot_token
